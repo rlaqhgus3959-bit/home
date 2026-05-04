@@ -1,0 +1,75 @@
+<!-- Firebase 실시간 연동 스크립트 -->
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+    import { getFirestore, collection, onSnapshot, query, orderBy, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+    // 💡 index.html과 동일한 Firebase 설정값을 넣으세요!
+    const firebaseConfig = {
+        apiKey: "YOUR_API_KEY",
+        authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+        projectId: "YOUR_PROJECT_ID",
+        storageBucket: "YOUR_PROJECT_ID.appspot.com",
+        messagingSenderId: "YOUR_MESSAGING_ID",
+        appId: "YOUR_APP_ID"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const queueList = document.getElementById('queueList');
+    const countBadge = document.getElementById('countBadge');
+
+    // 실시간 데이터 불러오기 (시간순 정렬)
+    const q = query(collection(db, "requests"), orderBy("timestamp", "asc"));
+    
+    onSnapshot(q, (snapshot) => {
+        queueList.innerHTML = ''; // 기존 리스트 초기화
+        let count = 0;
+
+        snapshot.forEach((docSnap) => {
+            const data = docSnap.data();
+            const id = docSnap.id;
+            count++;
+
+            const tagHtml = data.notes !== "해당 없음" ? `<span class="tag">${data.notes}</span>` : '';
+
+            // 화면에 카드 생성
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.innerHTML = `
+                <div class="info">
+                    <div class="loc">${data.startLoc} ⇨ ${data.endLoc} ${tagHtml}</div>
+                    <div class="detail">${data.contact} | 접수: ${data.timeString}</div>
+                </div>
+                <button class="action-btn" onclick="completeTask('${id}')">완료</button>
+            `;
+            queueList.appendChild(card);
+        });
+
+        // 대기 건수 업데이트
+        countBadge.innerText = `대기 ${count}건`;
+
+        if(count === 0) {
+            queueList.innerHTML = '<div style="text-align:center; padding:20px; color:#8e8e93;">현재 대기 중인 접수가 없습니다.</div>';
+        }
+    });
+
+    // 🌟 '완료' 버튼 클릭 시 DB에서 삭제하는 함수 (전역 변수 처리)
+    window.completeTask = async function(docId) {
+        if(confirm("해당 세대 귀가 지원을 완료하셨습니까?")) {
+            try {
+                await deleteDoc(doc(db, "requests", docId));
+            } catch (error) {
+                console.error("완료 처리 오류: ", error);
+                alert("처리 중 오류가 발생했습니다.");
+            }
+        }
+    };
+
+    // PWA 서비스 워커 등록
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('./sw.js');
+        });
+    }
+</script>
