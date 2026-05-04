@@ -44,14 +44,14 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
     import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 
-    // 새로 만드신 안심동행 전용 키값 적용 완료
+    // 본인의 Firebase Config 정보를 입력하세요
     const firebaseConfig = {
-        apiKey: "AIzaSyC4pyfcbxQu7ggpju9pAn-bJiRMDVKsRrc",
+        apiKey: "여기에_복사한_값_입력",
         authDomain: "ansim-doghaeng.firebaseapp.com",
         projectId: "ansim-doghaeng",
-        storageBucket: "ansim-doghaeng.firebasestorage.app",
-        messagingSenderId: "969921301114",
-        appId: "1:969921301114:web:210c4a8978a3b2204f89c3"
+        storageBucket: "ansim-doghaeng.appspot.com",
+        messagingSenderId: "발급받은_아이디",
+        appId: "발급받은_앱아이디"
     };
 
     const app = initializeApp(firebaseConfig);
