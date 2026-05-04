@@ -13,53 +13,55 @@
         .container { max-width: 600px; margin: 0 auto; }
         .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #38383a; padding-bottom: 15px; margin-bottom: 20px; }
         .header h2 { margin: 0; font-size: 20px; color: #0a84ff; }
-        .badge { background: #ff453a; padding: 5px 10px; border-radius: 12px; font-weight: bold; font-size: 14px; }
-        .card { background: #2c2c2e; padding: 15px; border-radius: 12px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #3a3a3c; }
-        .info .loc { font-size: 16px; font-weight: bold; color: white; margin-bottom: 5px; }
-        .info .detail { font-size: 13px; color: #8e8e93; }
-        .action-btn { background: #32d74b; color: #1c1c1e; border: none; padding: 10px 15px; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        .badge { background: #ff453a; padding: 5px 12px; border-radius: 12px; font-weight: bold; font-size: 14px; }
+        .card { background: #2c2c2e; padding: 18px; border-radius: 16px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #3a3a3c; }
+        .info .loc { font-size: 17px; font-weight: bold; color: white; margin-bottom: 6px; }
+        .info .detail { font-size: 14px; color: #8e8e93; }
+        .tag { font-size: 11px; background: #007aff; padding: 2px 6px; border-radius: 4px; color: white; margin-left: 5px; vertical-align: middle; }
+        .action-btn { background: #32d74b; color: #000; border: none; padding: 12px 18px; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 14px; transition: 0.2s; }
+        .action-btn:active { background: #28b63f; transform: scale(0.95); }
     </style>
 </head>
 <body>
 <div class="container">
     <div class="header">
-        <h2>🚓 안심동행 현황판</h2>
-        <span class="badge" id="countBadge">대기 2건</span>
+        <h2>🚓 안심동행 현황</h2>
+        <span class="badge" id="countBadge">대기 1건</span>
     </div>
     
     <div id="queueList">
-        <div class="card" id="card1">
+        <!-- 초기 화면 확인용 샘플 데이터 -->
+        <div class="card" id="sampleCard">
             <div class="info">
-                <div class="loc">정문 ⇨ 101동 502호</div>
-                <div class="detail">010-1234-5678 | 접수 15:30</div>
+                <div class="loc">정문 ⇨ 102동 304호 <span class="tag">노약자</span></div>
+                <div class="detail">010-0000-0000 | 테스트 데이터</div>
             </div>
-            <button class="action-btn" onclick="completeTask('card1')">완료</button>
-        </div>
-
-        <div class="card" id="card2">
-            <div class="info">
-                <div class="loc">지하주차장 ⇨ 105동 1104호</div>
-                <div class="detail">010-9876-5432 | 접수 15:32</div>
-            </div>
-            <button class="action-btn" onclick="completeTask('card2')">완료</button>
+            <button class="action-btn" onclick="completeTask('sampleCard')">완료</button>
         </div>
     </div>
 </div>
 
 <script>
-    // 서비스 워커 등록
+    // 서비스 워커 등록 코드 (선택 사항)
     if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-            navigator.serviceWorker.register('./sw.js').catch(err => console.log(err));
-        });
+        navigator.serviceWorker.register('./sw.js').catch(() => {});
     }
 
     // 완료 처리 함수
     function completeTask(cardId) {
-        if(confirm("안심귀가 지원을 완료하셨습니까?")) {
-            const element = document.getElementById(cardId);
-            if(element) element.style.display = 'none';
+        if(confirm("지원을 완료하셨습니까?")) {
+            const card = document.getElementById(cardId);
+            if(card) {
+                card.style.display = 'none';
+                updateCount();
+            }
         }
+    }
+
+    // 대기 건수 업데이트 함수
+    function updateCount() {
+        const cards = document.querySelectorAll('.card:not([style*="display: none"])');
+        document.getElementById('countBadge').innerText = `대기 ${cards.length}건`;
     }
 </script>
 </body>
