@@ -3,66 +3,47 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>안심동행 신청</title>
-    
-    <!-- PWA 및 웹앱 매니페스트 연결 -->
-    <link rel="manifest" href="./manifest.json">
-    <meta name="theme-color" content="#007aff">
-    <link rel="apple-touch-icon" href="icon-192.png">
-
+    <title>안심동행 서비스 신청</title>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f5f5f7; padding: 20px; margin: 0; }
-        body { font-family: -apple-system, sans-serif; background: #f5f5f7; padding: 20px; margin: 0; }
-        .container { max-width: 500px; margin: 0 auto; background: #fff; padding: 25px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); }
-        .header { text-align: center; margin-bottom: 25px; }
-        .header h2 { margin: 0; font-size: 22px; color: #1d1d1f; }
-        label { display: block; font-size: 13px; font-weight: bold; margin-bottom: 5px; color: #424245; }
-        input, select { width: 100%; padding: 14px; margin-bottom: 15px; border: 1px solid #d2d2d7; border-radius: 12px; box-sizing: border-box; background-color: #fafafa; font-size: 16px; }
-        input:focus, select:focus { outline: none; border-color: #007aff; background-color: #ffffff; }
-        .submit-btn { width: 100%; background: #007aff; color: white; border: none; padding: 16px; font-size: 16px; font-weight: bold; border-radius: 12px; cursor: pointer; box-shadow: 0 2px 10px rgba(0, 122, 255, 0.3); }
-        .submit-btn:active { background: #005bb5; }
-        .submit-btn { width: 100%; background: #007aff; color: white; border: none; padding: 16px; font-size: 16px; font-weight: bold; border-radius: 12px; cursor: pointer; }
+        body { font-family: -apple-system, sans-serif; background: #f2f2f7; padding: 20px; margin: 0; }
+        .container { max-width: 500px; margin: 0 auto; background: white; padding: 25px; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        h2 { text-align: center; color: #1c1c1e; margin-bottom: 25px; }
+        .input-group { margin-bottom: 15px; }
+        label { display: block; font-size: 14px; color: #8e8e93; margin-bottom: 5px; margin-left: 5px; }
+        input, textarea { width: 100%; padding: 12px; border: 1px solid #d1d1d6; border-radius: 10px; font-size: 16px; box-sizing: border-box; }
+        .submit-btn { width: 100%; background: #007aff; color: white; border: none; padding: 15px; border-radius: 12px; font-size: 17px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        .submit-btn:active { background: #0056b3; }
     </style>
 </head>
 <body>
-    </div>
+<div class="container">
+    <h2>🚓 안심동행 신청</h2>
     <form id="reservationForm">
-        <label>출발지</label>
-        <input type="text" id="startLoc" placeholder="예: 정문 경비실 앞, 지하 1층 A구역" required>
-
-        <input type="text" id="startLoc" placeholder="예: 정문 경비실 앞" required>
-        <label>도착지</label>
-        <input type="text" id="endLoc" placeholder="예: 101동 502호" required>
-        
-        <label>연락처</label>
-        <input type="tel" id="contact" placeholder="010-XXXX-XXXX" required>
-        
-        <label>특이사항 (선택)</label>
-        <label>특이사항</label>
-        <select id="notes">
-            <option value="해당 없음">해당 없음</option>
-            <option value="여성 안심 귀가">여성 안심 귀가</option>
-            <option value="노약자/어린이 동행">노약자/어린이 동행</option>
-            <option value="무거운 짐 있음">무거운 짐 있음</option>
-        </select>
-        
-        <button type="submit" class="submit-btn">신청하기</button>
+        <div class="input-group">
+            <label>출발 장소</label>
+            <input type="text" id="startLoc" placeholder="예: 단지 정문, 상가 앞" required>
+        </div>
+        <div class="input-group">
+            <label>도착 장소</label>
+            <input type="text" id="endLoc" placeholder="예: 101동 공동현관" required>
+        </div>
+        <div class="input-group">
+            <label>연락처</label>
+            <input type="tel" id="contact" placeholder="010-0000-0000" required>
+        </div>
+        <div class="input-group">
+            <label>기타 요청사항</label>
+            <textarea id="notes" rows="2" placeholder="예: 노약자 동행, 짐이 많음"></textarea>
+        </div>
+        <button type="submit" class="submit-btn">안심동행 신청하기</button>
     </form>
 </div>
 
-<!-- 서비스 워커 등록 (앱 설치 기능 활성화) -->
-<script>
-    if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-            navigator.serviceWorker.register('./sw.js')
-                .then(reg => console.log('ServiceWorker 등록 성공'))
-                .catch(err => console.log('ServiceWorker 등록 실패', err));
-        });
-    }
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
     import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 
+    // 사용자의 Firebase 설정값 (ansim-doghaeng 프로젝트)
     const firebaseConfig = {
         apiKey: "AIzaSyC4pyfcbxQu7ggpju9pAn-bJiRMDVKsRrc",
         authDomain: "ansim-doghaeng.firebaseapp.com",
@@ -75,26 +56,35 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    // 폼 제출 스크립트
-    document.getElementById('reservationForm').addEventListener('submit', function(e) {
-    document.getElementById('reservationForm').addEventListener('submit', async (e) => {
+    // 데이터 저장 로직
+    document.getElementById('reservationForm').addEventListener('submit', async function(e) {
         e.preventDefault();
-        const startLoc = document.getElementById('startLoc').value;
-        // 향후 이곳에 Firebase addDoc 코드를 추가합니다.
-        alert('신청이 완료되었습니다. 출발지(' + startLoc + ')에서 잠시만 기다려주세요.');
-        this.reset();
+        
+        const submitBtn = e.target.querySelector('.submit-btn');
+        submitBtn.disabled = true;
+        submitBtn.innerText = "접수 중...";
+
         try {
+            // admin.html과 일치하도록 "requests" 컬렉션 사용
             await addDoc(collection(db, "requests"), {
                 startLoc: document.getElementById('startLoc').value,
                 endLoc: document.getElementById('endLoc').value,
                 contact: document.getElementById('contact').value,
-                notes: document.getElementById('notes').value,
+                notes: document.getElementById('notes').value || "요청없음",
                 status: "대기",
                 createdAt: serverTimestamp()
             });
+            
             alert('정상적으로 접수되었습니다. 출발지에서 잠시만 기다려주세요.');
-            e.target.reset();
-        } catch (err) { alert('접수 실패: ' + err.message); }
+            this.reset();
+        } catch (error) {
+            console.error("접수 에러:", error);
+            alert('접수 중 오류가 발생했습니다. 다시 시도해 주세요.');
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.innerText = "안심동행 신청하기";
+        }
     });
 </script>
 </body>
+</html>
