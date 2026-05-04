@@ -1,68 +1,46 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>안심동행 관제(경찰용)</title>
-    
-    <link rel="manifest" href="./manifest.json">
-    <meta name="theme-color" content="#1c1c1e">
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
+    import { getFirestore, collection, query, orderBy, onSnapshot, updateDoc, doc } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 
-    <style>
-        body { font-family: -apple-system, sans-serif; background: #1c1c1e; padding: 20px; margin: 0; color: white; }
-        .container { max-width: 600px; margin: 0 auto; }
-        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #38383a; padding-bottom: 15px; margin-bottom: 20px; }
-        .header h2 { margin: 0; font-size: 20px; color: #0a84ff; }
-        .badge { background: #ff453a; padding: 5px 12px; border-radius: 12px; font-weight: bold; font-size: 14px; }
-        .card { background: #2c2c2e; padding: 18px; border-radius: 16px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #3a3a3c; }
-        .info .loc { font-size: 17px; font-weight: bold; color: white; margin-bottom: 6px; }
-        .info .detail { font-size: 14px; color: #8e8e93; }
-        .tag { font-size: 11px; background: #007aff; padding: 2px 6px; border-radius: 4px; color: white; margin-left: 5px; vertical-align: middle; }
-        .action-btn { background: #32d74b; color: #000; border: none; padding: 12px 18px; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 14px; transition: 0.2s; }
-        .action-btn:active { background: #28b63f; transform: scale(0.95); }
-    </style>
-</head>
-<body>
-<div class="container">
-    <div class="header">
-        <h2>🚓 안심동행 현황</h2>
-        <span class="badge" id="countBadge">대기 1건</span>
-    </div>
-    
-    <div id="queueList">
-        <!-- 초기 화면 확인용 샘플 데이터 -->
-        <div class="card" id="sampleCard">
-            <div class="info">
-                <div class="loc">정문 ⇨ 102동 304호 <span class="tag">노약자</span></div>
-                <div class="detail">010-0000-0000 | 테스트 데이터</div>
-            </div>
-            <button class="action-btn" onclick="completeTask('sampleCard')">완료</button>
-        </div>
-    </div>
-</div>
+    const firebaseConfig = { /* 위와 동일한 설정값 */ };
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const ansimCollection = collection(db, "ansim_requests");
 
-<script>
-    // 서비스 워커 등록 코드 (선택 사항)
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('./sw.js').catch(() => {});
-    }
+    // 실시간 데이터 수신 (대기 상태인 건만 시간순 정렬)
+    const q = query(ansimCollection, orderBy("createdAt", "desc"));
+    
+    onSnapshot(q, (snapshot) => {
+        const queueList = document.getElementById('queueList');
+        const countBadge = document.getElementById('countBadge');
+        queueList.innerHTML = "";
+        let count = 0;
+
+        snapshot.forEach((doc) => {
+            const item = doc.data();
+            if(item.status === "완료") return; // 완료된 건은 표시 안함
+            
+            count++;
+            const time = item.createdAt ? item.createdAt.toDate().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : "접수 중";
+            
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.innerHTML = `
+                <div class="info">
+                    <div class="loc">${item.startLoc} ⇨ ${item.endLoc} <span class="tag">${item.notes}</span></div>
+                    <div class="detail">${item.contact} | 접수: ${time}</div>
+                </div>
+                <button class="action-btn" onclick="completeTask('${doc.id}')">완료</button>
+            `;
+            queueList.appendChild(card);
+        });
+        countBadge.innerText = `대기 ${count}건`;
+    });
 
     // 완료 처리 함수
-    function completeTask(cardId) {
+    window.completeTask = async (id) => {
         if(confirm("지원을 완료하셨습니까?")) {
-            const card = document.getElementById(cardId);
-            if(card) {
-                card.style.display = 'none';
-                updateCount();
-            }
+            await updateDoc(doc(db, "ansim_requests", id), { status: "완료" });
         }
-    }
-
-    // 대기 건수 업데이트 함수
-    function updateCount() {
-        const cards = document.querySelectorAll('.card:not([style*="display: none"])');
-        document.getElementById('countBadge').innerText = `대기 ${cards.length}건`;
-    }
+    };
 </script>
-</body>
-</html>
