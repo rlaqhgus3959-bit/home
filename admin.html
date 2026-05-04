@@ -13,8 +13,8 @@
         .card { background: #2c2c2e; padding: 18px; border-radius: 16px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #3a3a3c; }
         .info .loc { font-size: 17px; font-weight: bold; color: white; margin-bottom: 6px; }
         .info .detail { font-size: 14px; color: #8e8e93; }
-        .tag { font-size: 11px; background: #007aff; padding: 2px 6px; border-radius: 4px; color: white; margin-left: 5px; }
-        .action-btn { background: #32d74b; color: #000; border: none; padding: 12px 18px; border-radius: 10px; font-weight: bold; cursor: pointer; }
+        .tag { font-size: 11px; background: #007aff; padding: 2px 6px; border-radius: 4px; color: white; margin-left: 5px; vertical-align: middle; }
+        .action-btn { background: #32d74b; color: #000; border: none; padding: 12px 18px; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 14px; }
     </style>
 </head>
 <body>
@@ -30,7 +30,6 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
     import { getFirestore, collection, query, orderBy, onSnapshot, updateDoc, doc } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 
-    const firebaseConfig = { /* 위와 동일한 설정값 */ };
     const firebaseConfig = {
         apiKey: "AIzaSyC4pyfcbxQu7ggpju9pAn-bJiRMDVKsRrc",
         authDomain: "ansim-doghaeng.firebaseapp.com",
@@ -42,37 +41,31 @@
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
-    const ansimCollection = collection(db, "ansim_requests");
 
-    // 실시간 데이터 수신 (대기 상태인 건만 시간순 정렬)
-    const q = query(ansimCollection, orderBy("createdAt", "desc"));
-    
+    // "requests" 컬렉션 사용 (index.html과 동일해야 함)
     const q = query(collection(db, "requests"), orderBy("createdAt", "desc"));
+    
     onSnapshot(q, (snapshot) => {
         const queueList = document.getElementById('queueList');
         const countBadge = document.getElementById('countBadge');
         queueList.innerHTML = "";
         let count = 0;
 
-        snapshot.forEach((doc) => {
-            const item = doc.data();
-            if(item.status === "완료") return; // 완료된 건은 표시 안함
-            
         snapshot.forEach((d) => {
             const item = d.data();
+            // 완료 상태인 건은 목록에서 제외
             if(item.status === "완료") return;
+            
             count++;
             const time = item.createdAt ? item.createdAt.toDate().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : "접수 중";
             
-            const time = item.createdAt ? item.createdAt.toDate().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : "...";
             const card = document.createElement('div');
             card.className = 'card';
             card.innerHTML = `
                 <div class="info">
-                    <div class="loc">${item.startLoc} ⇨ ${item.endLoc} <span class="tag">${item.notes}</span></div>
+                    <div class="loc">${item.startLoc} ⇨ ${item.endLoc} <span class="tag">${item.notes || '요청없음'}</span></div>
                     <div class="detail">${item.contact} | 접수: ${time}</div>
                 </div>
-                <button class="action-btn" onclick="completeTask('${doc.id}')">완료</button>
                 <button class="action-btn" onclick="done('${d.id}')">완료</button>
             `;
             queueList.appendChild(card);
@@ -81,11 +74,14 @@
     });
 
     // 완료 처리 함수
-    window.completeTask = async (id) => {
     window.done = async (id) => {
         if(confirm("지원을 완료하셨습니까?")) {
-            await updateDoc(doc(db, "ansim_requests", id), { status: "완료" });
-            await updateDoc(doc(db, "requests", id), { status: "완료" });
+            try {
+                await updateDoc(doc(db, "requests", id), { status: "완료" });
+            } catch (error) {
+                console.error("오류 발생:", error);
+                alert("처리 중 오류가 발생했습니다.");
+            }
         }
     };
 </script>
