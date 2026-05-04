@@ -18,7 +18,6 @@
         .action-btn { background: #32d74b; color: #000; border: none; padding: 12px 18px; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 14px; }
     </style>
 </head>
-<!-- 화면을 터치해야 소리 알림이 활성화되므로 body에 onclick 이벤트 추가 -->
 <body onclick="enableAudio()">
 <div class="container">
     <div class="header">
@@ -32,14 +31,13 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
     import { getFirestore, collection, query, orderBy, onSnapshot, updateDoc, doc } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 
-    // 새로 만드신 안심동행 전용 키값 적용 완료
     const firebaseConfig = {
-        apiKey: "AIzaSyC4pyfcbxQu7ggpju9pAn-bJiRMDVKsRrc",
+        apiKey: "여기에_복사한_값_입력",
         authDomain: "ansim-doghaeng.firebaseapp.com",
         projectId: "ansim-doghaeng",
-        storageBucket: "ansim-doghaeng.firebasestorage.app",
-        messagingSenderId: "969921301114",
-        appId: "1:969921301114:web:210c4a8978a3b2204f89c3"
+        storageBucket: "ansim-doghaeng.appspot.com",
+        messagingSenderId: "발급받은_아이디",
+        appId: "발급받은_앱아이디"
     };
 
     const app = initializeApp(firebaseConfig);
@@ -47,9 +45,9 @@
     const alertSound = new Audio('https://t1.daumcdn.net/kakaotalk/public/sound/talk_01.mp3');
 
     // 브라우저 소리 재생 허용을 위한 함수
-    window.enableAudio = () => { console.log("알림 오디오 대기 중..."); };
+    window.enableAudio = () => { console.log("오디오 활성화됨"); };
 
-    // 브라우저 팝업 알림 권한 요청
+    // 알림 권한 요청
     if (Notification.permission !== 'granted') { Notification.requestPermission(); }
 
     const q = query(collection(db, "requests"), orderBy("createdAt", "desc"));
@@ -60,15 +58,14 @@
         queueList.innerHTML = "";
         let count = 0;
 
-        // 새 데이터가 추가될 때만 알림 발생 (10초 이내 접수 건)
         snapshot.docChanges().forEach((change) => {
             if (change.type === "added") {
                 const item = change.doc.data();
                 const now = new Date().getTime();
                 const itemTime = item.createdAt ? item.createdAt.toDate().getTime() : now;
                 
-                if (now - itemTime < 10000) { 
-                    alertSound.play().catch(e => { console.log("소리 재생 권한 필요 - 화면을 한 번 클릭해주세요.")});
+                if (now - itemTime < 10000) { // 10초 이내 새 데이터
+                    alertSound.play().catch(e => {});
                     if (Notification.permission === 'granted') {
                         new Notification("🚓 신규 접수!", { body: `${item.startLoc}에서 요청이 들어왔습니다.` });
                     }
@@ -76,7 +73,6 @@
             }
         });
 
-        // 목록 업데이트
         snapshot.forEach((d) => {
             const item = d.data();
             if(item.status === "완료") return;
@@ -97,7 +93,6 @@
         countBadge.innerText = `대기 ${count}건`;
     });
 
-    // 완료 처리
     window.completeTask = async (id) => {
         if(confirm("지원을 완료하셨습니까?")) {
             await updateDoc(doc(db, "requests", id), { status: "완료" });
