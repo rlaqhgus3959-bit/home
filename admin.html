@@ -5,7 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>안심동행 관제(경찰용)</title>
     <style>
-        body { font-family: -apple-system, sans-serif; background: #1c1c1e; padding: 20px; margin: 0; color: white; }
+        /* 화면 전체를 터치 영역으로 만들기 위해 body에 min-height 추가 (기존 디자인 유지) */
+        body { font-family: -apple-system, sans-serif; background: #1c1c1e; padding: 20px; margin: 0; color: white; min-height: 100vh; }
         .container { max-width: 600px; margin: 0 auto; }
         .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #38383a; padding-bottom: 15px; margin-bottom: 20px; }
         .header h2 { margin: 0; font-size: 20px; color: #0a84ff; }
@@ -18,7 +19,7 @@
         .action-btn { background: #32d74b; color: #000; border: none; padding: 12px 18px; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 14px; }
     </style>
 </head>
-<body onclick="enableAudio()">
+<body>
 <div class="container">
     <div class="header">
         <h2>🚓 안심동행 현황</h2>
@@ -31,7 +32,7 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
     import { getFirestore, collection, query, orderBy, onSnapshot, updateDoc, doc } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 
-    // 1. Firebase 설정 (ansim-doghaeng 프로젝트 전용)
+    // 1. Firebase 설정 (연동 잘 되는 원본 유지)
     const firebaseConfig = {
         apiKey: "AIzaSyC4pyfcbxQu7ggpju9pAn-bJiRMDVKsRrc",
         authDomain: "ansim-doghaeng.firebaseapp.com",
@@ -45,18 +46,23 @@
     const db = getFirestore(app);
     const alertSound = new Audio('https://t1.daumcdn.net/kakaotalk/public/sound/talk_01.mp3');
 
-    // 2. 오디오 및 알림 권한 설정
-    let isAudioEnabled = false;
-    window.enableAudio = () => {
-        isAudioEnabled = true;
-        console.log("알림 소리 대기 중...");
-    };
+    // ★ [수정됨] 알림 및 소리 권한 강제 획득 로직
+    // 사용자가 화면 아무 곳이나 1번 터치/클릭하면 소리 차단을 확실히 해제합니다.
+    document.addEventListener('click', function unlockAudio() {
+        alertSound.play().then(() => {
+            alertSound.pause();
+            alertSound.currentTime = 0;
+            console.log("🔊 알림 소리 활성화 완료!");
+        }).catch(() => {});
+        document.removeEventListener('click', unlockAudio);
+    }, { once: true });
 
-    if (Notification.permission !== 'granted') {
+    // 팝업 권한 요청 (모바일/PC 완벽 호환)
+    if ("Notification" in window && Notification.permission !== 'granted') {
         Notification.requestPermission();
     }
 
-    // 3. 실시간 데이터 감시 및 화면 업데이트
+    // 3. 실시간 데이터 감시 및 화면 업데이트 (연동 코드 원본 유지)
     const q = query(collection(db, "requests"), orderBy("createdAt", "desc"));
     
     onSnapshot(q, (snapshot) => {
@@ -65,19 +71,26 @@
         queueList.innerHTML = "";
         let count = 0;
 
-        // 신규 데이터 추가 시 알림 발생
+        // ★ [수정됨] 신규 데이터 알림 조건 강화
         snapshot.docChanges().forEach((change) => {
             if (change.type === "added") {
                 const item = change.doc.data();
-                const now = new Date().getTime();
-                const itemTime = item.createdAt ? item.createdAt.toDate().getTime() : now;
                 
-                // 최근 15초 이내 접수 건만 알림
-                if (now - itemTime < 15000) {
-                    if (isAudioEnabled) {
-                        alertSound.play().catch(e => {});
-                    }
-                    if (Notification.permission === 'granted') {
+                // 방금 막 추가된 데이터는 서버 시간(createdAt)이 비어있을 수 있으므로 무조건 알림을 울리게 처리
+                let isNewRequest = false;
+                if (!item.createdAt) {
+                    isNewRequest = true; 
+                } else {
+                    const now = new Date().getTime();
+                    const itemTime = item.createdAt.toDate().getTime();
+                    if (now - itemTime < 15000) isNewRequest = true;
+                }
+                
+                // 신규 접수일 때만 소리/팝업 실행
+                if (isNewRequest) {
+                    alertSound.play().catch(e => console.log("소리 재생 대기중(화면 터치 필요)"));
+                    
+                    if ("Notification" in window && Notification.permission === 'granted') {
                         new Notification("🚓 안심동행 신규 접수!", {
                             body: `${item.startLoc}에서 신청이 들어왔습니다.`
                         });
@@ -86,7 +99,7 @@
             }
         });
 
-        // 목록 생성
+        // 목록 생성 (원본 그대로 유지)
         snapshot.forEach((d) => {
             const item = d.data();
             if(item.status === "완료") return;
@@ -108,7 +121,7 @@
         countBadge.innerText = `대기 ${count}건`;
     });
 
-    // 4. 완료 처리 함수
+    // 4. 완료 처리 함수 (원본 그대로 유지)
     window.done = async (id) => {
         if(confirm("지원을 완료하셨습니까?")) {
             await updateDoc(doc(db, "requests", id), { status: "완료" });
