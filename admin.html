@@ -1,35 +1,8 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>안심동행 관제(경찰용)</title>
-    <style>
-        body { font-family: -apple-system, sans-serif; background: #1c1c1e; padding: 20px; margin: 0; color: white; }
-        .container { max-width: 600px; margin: 0 auto; }
-        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #38383a; padding-bottom: 15px; margin-bottom: 20px; }
-        .header h2 { margin: 0; font-size: 20px; color: #0a84ff; }
-        .badge { background: #ff453a; padding: 5px 12px; border-radius: 12px; font-weight: bold; font-size: 14px; }
-        .card { background: #2c2c2e; padding: 18px; border-radius: 16px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #3a3a3c; }
-        .info .loc { font-size: 17px; font-weight: bold; color: white; margin-bottom: 6px; }
-        .info .detail { font-size: 14px; color: #8e8e93; }
-        .tag { font-size: 11px; background: #007aff; padding: 2px 6px; border-radius: 4px; color: white; margin-left: 5px; vertical-align: middle; }
-        .action-btn { background: #32d74b; color: #000; border: none; padding: 12px 18px; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 14px; }
-    </style>
-</head>
-<body>
-<div class="container">
-    <div class="header">
-        <h2>🚓 안심동행 현황</h2>
-        <span class="badge" id="countBadge">대기 0건</span>
-    </div>
-    <div id="queueList"></div>
-</div>
-
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
     import { getFirestore, collection, query, orderBy, onSnapshot, updateDoc, doc } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 
+    // 1. Firebase 설정 (중복 제거, 한 번만 선언)
     const firebaseConfig = {
         apiKey: "AIzaSyC4pyfcbxQu7ggpju9pAn-bJiRMDVKsRrc",
         authDomain: "ansim-doghaeng.firebaseapp.com",
@@ -41,8 +14,23 @@
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
+    
+    // 2. 알림 설정 (소리 및 권한)
+    const alertSound = new Audio('https://t1.daumcdn.net/kakaotalk/public/sound/talk_01.mp3');
+    let canPlayAudio = false;
 
-    // "requests" 컬렉션 사용 (index.html과 동일해야 함)
+    // 화면 클릭 시 소리 권한 획득
+    window.enableAudio = () => {
+        canPlayAudio = true;
+        console.log("알림음 활성화 상태");
+    };
+
+    // 브라우저 팝업 권한 요청
+    if (Notification.permission !== 'granted') {
+        Notification.requestPermission();
+    }
+
+    // 3. 실시간 데이터 감시 (컬렉션 이름: requests)
     const q = query(collection(db, "requests"), orderBy("createdAt", "desc"));
     
     onSnapshot(q, (snapshot) => {
@@ -51,9 +39,31 @@
         queueList.innerHTML = "";
         let count = 0;
 
+        // [핵심] 신규 접수 알림 로직
+        snapshot.docChanges().forEach((change) => {
+            if (change.type === "added") {
+                const item = change.doc.data();
+                const now = new Date().getTime();
+                const itemTime = item.createdAt ? item.createdAt.toDate().getTime() : now;
+                
+                // 최근 10초 이내에 생성된 데이터일 때만 알림 실행
+                if (now - itemTime < 10000) {
+                    if (canPlayAudio) {
+                        alertSound.play().catch(e => console.log("소리 재생 실패:", e));
+                    }
+                    if (Notification.permission === 'granted') {
+                        new Notification("🚓 안심동행 신규 접수!", {
+                            body: `${item.startLoc}에서 요청이 들어왔습니다.`,
+                            icon: "https://rlaqhgus3959-bit.github.io/home/icon-192x192.png"
+                        });
+                    }
+                }
+            }
+        });
+
+        // 목록 화면 업데이트
         snapshot.forEach((d) => {
             const item = d.data();
-            // 완료 상태인 건은 목록에서 제외
             if(item.status === "완료") return;
             
             count++;
@@ -63,7 +73,7 @@
             card.className = 'card';
             card.innerHTML = `
                 <div class="info">
-                    <div class="loc">${item.startLoc} ⇨ ${item.endLoc} <span class="tag">${item.notes || '요청없음'}</span></div>
+                    <div class="loc">${item.startLoc} ⇨ ${item.endLoc} <span class="tag">${item.notes || '없음'}</span></div>
                     <div class="detail">${item.contact} | 접수: ${time}</div>
                 </div>
                 <button class="action-btn" onclick="done('${d.id}')">완료</button>
@@ -76,14 +86,7 @@
     // 완료 처리 함수
     window.done = async (id) => {
         if(confirm("지원을 완료하셨습니까?")) {
-            try {
-                await updateDoc(doc(db, "requests", id), { status: "완료" });
-            } catch (error) {
-                console.error("오류 발생:", error);
-                alert("처리 중 오류가 발생했습니다.");
-            }
+            await updateDoc(doc(db, "requests", id), { status: "완료" });
         }
     };
 </script>
-</body>
-</html>
