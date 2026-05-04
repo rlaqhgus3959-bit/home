@@ -1,75 +1,66 @@
-<!-- Firebase 실시간 연동 스크립트 -->
-<script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-    import { getFirestore, collection, onSnapshot, query, orderBy, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
-
-    // 💡 index.html과 동일한 Firebase 설정값을 넣으세요!
-    const firebaseConfig = {
-        apiKey: "YOUR_API_KEY",
-        authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-        projectId: "YOUR_PROJECT_ID",
-        storageBucket: "YOUR_PROJECT_ID.appspot.com",
-        messagingSenderId: "YOUR_MESSAGING_ID",
-        appId: "YOUR_APP_ID"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-
-    const queueList = document.getElementById('queueList');
-    const countBadge = document.getElementById('countBadge');
-
-    // 실시간 데이터 불러오기 (시간순 정렬)
-    const q = query(collection(db, "requests"), orderBy("timestamp", "asc"));
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>안심동행 관제(경찰용)</title>
     
-    onSnapshot(q, (snapshot) => {
-        queueList.innerHTML = ''; // 기존 리스트 초기화
-        let count = 0;
+    <link rel="manifest" href="./manifest.json">
+    <meta name="theme-color" content="#1c1c1e">
 
-        snapshot.forEach((docSnap) => {
-            const data = docSnap.data();
-            const id = docSnap.id;
-            count++;
+    <style>
+        body { font-family: -apple-system, sans-serif; background: #1c1c1e; padding: 20px; margin: 0; color: white; }
+        .container { max-width: 600px; margin: 0 auto; }
+        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #38383a; padding-bottom: 15px; margin-bottom: 20px; }
+        .header h2 { margin: 0; font-size: 20px; color: #0a84ff; }
+        .badge { background: #ff453a; padding: 5px 10px; border-radius: 12px; font-weight: bold; font-size: 14px; }
+        .card { background: #2c2c2e; padding: 15px; border-radius: 12px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #3a3a3c; }
+        .info .loc { font-size: 16px; font-weight: bold; color: white; margin-bottom: 5px; }
+        .info .detail { font-size: 13px; color: #8e8e93; }
+        .action-btn { background: #32d74b; color: #1c1c1e; border: none; padding: 10px 15px; border-radius: 8px; font-weight: bold; cursor: pointer; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h2>🚓 안심동행 현황판</h2>
+        <span class="badge" id="countBadge">대기 2건</span>
+    </div>
+    
+    <div id="queueList">
+        <div class="card" id="card1">
+            <div class="info">
+                <div class="loc">정문 ⇨ 101동 502호</div>
+                <div class="detail">010-1234-5678 | 접수 15:30</div>
+            </div>
+            <button class="action-btn" onclick="completeTask('card1')">완료</button>
+        </div>
 
-            const tagHtml = data.notes !== "해당 없음" ? `<span class="tag">${data.notes}</span>` : '';
+        <div class="card" id="card2">
+            <div class="info">
+                <div class="loc">지하주차장 ⇨ 105동 1104호</div>
+                <div class="detail">010-9876-5432 | 접수 15:32</div>
+            </div>
+            <button class="action-btn" onclick="completeTask('card2')">완료</button>
+        </div>
+    </div>
+</div>
 
-            // 화면에 카드 생성
-            const card = document.createElement('div');
-            card.className = 'card';
-            card.innerHTML = `
-                <div class="info">
-                    <div class="loc">${data.startLoc} ⇨ ${data.endLoc} ${tagHtml}</div>
-                    <div class="detail">${data.contact} | 접수: ${data.timeString}</div>
-                </div>
-                <button class="action-btn" onclick="completeTask('${id}')">완료</button>
-            `;
-            queueList.appendChild(card);
-        });
-
-        // 대기 건수 업데이트
-        countBadge.innerText = `대기 ${count}건`;
-
-        if(count === 0) {
-            queueList.innerHTML = '<div style="text-align:center; padding:20px; color:#8e8e93;">현재 대기 중인 접수가 없습니다.</div>';
-        }
-    });
-
-    // 🌟 '완료' 버튼 클릭 시 DB에서 삭제하는 함수 (전역 변수 처리)
-    window.completeTask = async function(docId) {
-        if(confirm("해당 세대 귀가 지원을 완료하셨습니까?")) {
-            try {
-                await deleteDoc(doc(db, "requests", docId));
-            } catch (error) {
-                console.error("완료 처리 오류: ", error);
-                alert("처리 중 오류가 발생했습니다.");
-            }
-        }
-    };
-
-    // PWA 서비스 워커 등록
+<script>
+    // 서비스 워커 등록
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-            navigator.serviceWorker.register('./sw.js');
+            navigator.serviceWorker.register('./sw.js').catch(err => console.log(err));
         });
     }
+
+    // 완료 처리 함수
+    function completeTask(cardId) {
+        if(confirm("안심귀가 지원을 완료하셨습니까?")) {
+            const element = document.getElementById(cardId);
+            if(element) element.style.display = 'none';
+        }
+    }
 </script>
+</body>
+</html>
