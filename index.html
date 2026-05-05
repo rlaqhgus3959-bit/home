@@ -10,7 +10,8 @@
         h2 { text-align: center; color: #1c1c1e; margin-bottom: 25px; }
         .input-group { margin-bottom: 15px; }
         label { display: block; font-size: 14px; color: #8e8e93; margin-bottom: 5px; margin-left: 5px; }
-        input, textarea { width: 100%; padding: 12px; border: 1px solid #d1d1d6; border-radius: 10px; font-size: 16px; box-sizing: border-box; }
+        /* 디자인 유지를 위해 select 추가 */
+        input, textarea, select { width: 100%; padding: 12px; border: 1px solid #d1d1d6; border-radius: 10px; font-size: 16px; box-sizing: border-box; background-color: white; }
         .submit-btn { width: 100%; background: #007aff; color: white; border: none; padding: 15px; border-radius: 12px; font-size: 17px; font-weight: bold; cursor: pointer; margin-top: 10px; }
         .submit-btn:active { background: #0056b3; }
     </style>
@@ -33,7 +34,15 @@
         </div>
         <div class="input-group">
             <label>기타 요청사항</label>
-            <textarea id="notes" rows="2" placeholder="예: 노약자 동행, 짐이 많음"></textarea>
+            <!-- 텍스트 입력창 대신 선택창(드롭다운)으로 변경 -->
+            <select id="notes">
+                <option value="">선택 안함 (일반 동행)</option>
+                <option value="노약자">노약자</option>
+                <option value="여성">여성</option>
+                <option value="임산부">임산부</option>
+                <option value="어린이 동반">어린이 동반</option>
+                <option value="짐이 많음">짐이 많음</option>
+            </select>
         </div>
         <button type="submit" class="submit-btn">안심동행 신청하기</button>
     </form>
@@ -70,6 +79,7 @@
                 startLoc: document.getElementById('startLoc').value,
                 endLoc: document.getElementById('endLoc').value,
                 contact: document.getElementById('contact').value,
+                // 선택 안 함(빈 값)일 경우 자동으로 "요청없음"으로 넘어가도록 기존 로직 유지
                 notes: document.getElementById('notes').value || "요청없음",
                 status: "대기",
                 createdAt: serverTimestamp()
